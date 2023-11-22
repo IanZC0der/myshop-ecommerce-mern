@@ -1,0 +1,15 @@
+{
+  "name": "ecommerce",
+  "version": "1.0.0",
+  "description": "MERN stack ecommerce app",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "author": "Ian Zhang",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
