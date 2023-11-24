@@ -1,7 +1,6 @@
-import {Link, useNavigate} from 'react-router-dom'
+import {Link} from 'react-router-dom'
 import {useParams} from 'react-router-dom'
-import {Row, Col, Image, ListGroup, Card, Button, Form} from 'react-bootstrap'
-import { useDispatch } from 'react-redux'
+import {Row, Col, Image, ListGroup, Card, Button} from 'react-bootstrap'
 import Message from '../components/Message'
 import { useGetOrderDetailsQuery, useGetPaypalClientIdQuery, usePayOrderMutation, useDeliverOrderMutation} from '../slices/ordersApiSlice'
 import Loader from '../components/Loader'
@@ -12,7 +11,6 @@ import { useSelector } from 'react-redux'
 
 const OrderScreen = () => {
     const { id: orderId } = useParams()
-    const navigate = useNavigate()
 
     const { data: order, refetch, error, isLoading } = useGetOrderDetailsQuery(orderId)
 
@@ -49,12 +47,12 @@ const OrderScreen = () => {
     }, [errorPayPal, loadingPayPal, paypal, paypalDispatch, order])
     
 
-    async function onApproveTest() {
-        await payOrder({ orderId, details: { payer: {} } })
-        refetch()
+    // async function onApproveTest() {
+    //     await payOrder({ orderId, details: { payer: {} } })
+    //     refetch()
 
-        toast.success('Order is paid')
-    }
+    //     toast.success('Order is paid')
+    // }
     function onApprove(data, actions) {
         return actions.order.capture().then(async function(details) {
             try {
