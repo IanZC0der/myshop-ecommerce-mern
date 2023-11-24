@@ -3,8 +3,12 @@ import {useParams} from 'react-router-dom'
 import {Row, Col, Image, ListGroup, Card, Button, Form} from 'react-bootstrap'
 import { useDispatch } from 'react-redux'
 import Message from '../components/Message'
-import { useGetOrderDetailsQuery } from '../slices/ordersApiSlice'
+import { useGetOrderDetailsQuery, useGetPaypalClientIdQuery, usePayOrderMutation} from '../slices/ordersApiSlice'
 import Loader from '../components/Loader'
+import { PayPalButtons, usePayPalScriptReducer} from '@paypal/react-paypal-js'
+import { toast } from 'react-toastify'
+import { useEffect } from 'react'
+import { useSelector } from 'react-redux'
 
 const OrderScreen = () => {
     const { id: orderId } = useParams()
@@ -12,9 +16,75 @@ const OrderScreen = () => {
 
     const { data: order, refetch, error, isLoading } = useGetOrderDetailsQuery(orderId)
 
-    const addDecimals = (num) => {
-        return (Math.round(num * 100) / 100).toFixed(2)
+    const [payOrder, { isLoading: loadingPay }] = usePayOrderMutation()
+
+    const [{isPending}, paypalDispatch] = usePayPalScriptReducer()
+
+    const {userInfo} = useSelector((state) => state.auth)
+    const {
+        data: paypal,
+        error: errorPayPal,
+        isLoading: loadingPayPal
+    } = useGetPaypalClientIdQuery()
+
+    useEffect(() => {
+        if (!errorPayPal && !loadingPayPal && paypal.clientId) {
+            const loadPaypalScript = async () => {
+                paypalDispatch({
+                    type: 'resetOptions',
+                    value: {
+                    'client-id': paypal.clientId,
+                    currency: 'USD',
+                    },
+                })
+                paypalDispatch({ type: 'setLoadingStatus', value: 'pending' });
+                }
+                if (order && !order.isPaid) {
+                    if (!window.paypal) {
+                        loadPaypalScript();
+                }
+            }
+        }
+    }, [errorPayPal, loadingPayPal, paypal, paypalDispatch, order])
+    
+
+    async function onApproveTest() {
+        await payOrder({ orderId, details: { payer: {} } })
+        refetch()
+
+        toast.success('Order is paid')
     }
+    function onApprove(data, actions) {
+        return actions.order.capture().then(async function(details) {
+            try {
+                await payOrder({ orderId, details })
+                refetch()
+
+                toast.success('Order is paid')
+            } catch (err) {
+                toast.error(err?.data?.message || err.error)
+            }
+        })
+    }
+
+    function onError(err) {
+        toast.error(err.message)
+    }
+
+    function createOrder(data, actions) {
+        return actions.order.create({
+            purchase_units: [
+                {
+                    amount: {
+                        value: order.totalPrice,
+                    },
+                },
+            ],
+        }).then((orderID) => {
+            return orderID
+        })
+    }
+
 
 
     return (
@@ -105,7 +175,22 @@ const OrderScreen = () => {
                                     </ListGroup.Item>
                                     {!order.isPaid && (
                                         <ListGroup.Item>
-                                            <Button type="button" className="btn btn-block" onClick={() => navigate(`/order/${order._id}/pay`)}>Pay</Button>
+                                        {loadingPay && <Loader />}
+
+                                        {isPending ? (
+                                            <Loader />
+                                        ) : (
+                                            <div>
+
+                                            <div>
+                                                <PayPalButtons
+                                                createOrder={createOrder}
+                                                onApprove={onApprove}
+                                                onError={onError}
+                                                ></PayPalButtons>
+                                            </div>
+                                            </div>
+                                        )}
                                         </ListGroup.Item>
                                     )}
                                 </ListGroup>
