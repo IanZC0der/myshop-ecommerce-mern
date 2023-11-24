@@ -3,7 +3,7 @@ import {useParams} from 'react-router-dom'
 import {Row, Col, Image, ListGroup, Card, Button, Form} from 'react-bootstrap'
 import { useDispatch } from 'react-redux'
 import Message from '../components/Message'
-import { useGetOrderDetailsQuery, useGetPaypalClientIdQuery, usePayOrderMutation} from '../slices/ordersApiSlice'
+import { useGetOrderDetailsQuery, useGetPaypalClientIdQuery, usePayOrderMutation, useDeliverOrderMutation} from '../slices/ordersApiSlice'
 import Loader from '../components/Loader'
 import { PayPalButtons, usePayPalScriptReducer} from '@paypal/react-paypal-js'
 import { toast } from 'react-toastify'
@@ -17,6 +17,7 @@ const OrderScreen = () => {
     const { data: order, refetch, error, isLoading } = useGetOrderDetailsQuery(orderId)
 
     const [payOrder, { isLoading: loadingPay }] = usePayOrderMutation()
+    const [deliverOrder, { isLoading: loadingDeliver }] = useDeliverOrderMutation()
 
     const [{isPending}, paypalDispatch] = usePayPalScriptReducer()
 
@@ -83,6 +84,17 @@ const OrderScreen = () => {
         }).then((orderID) => {
             return orderID
         })
+    }
+
+    const deliverHandler = async () => {
+        try {
+            await deliverOrder(orderId )
+            refetch()
+
+            toast.success('Order is delivered')
+        } catch (err) {
+            toast.error(err?.data?.message || err.error)
+        }
     }
 
 
@@ -191,6 +203,12 @@ const OrderScreen = () => {
                                             </div>
                                             </div>
                                         )}
+                                        </ListGroup.Item>
+                                    )}
+                                    {loadingDeliver && <Loader />}
+                                    {userInfo && userInfo.isAdmin && order.isPaid && !order.isDelivered && (
+                                        <ListGroup.Item>
+                                            <Button type="button" className="btn btn-block" onClick={deliverHandler}>Mark As Delivered</Button>
                                         </ListGroup.Item>
                                     )}
                                 </ListGroup>
